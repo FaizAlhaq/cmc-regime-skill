@@ -1,0 +1,45 @@
+# ── Secrets — NEVER commit (CMC key safety) ──────────────────────────────
+.env
+.env.*
+*.key
+
+# ── Raw market data — CMC ToS forbids redistribution. Fetch locally with ──
+#    your own key. The SYNTHETIC sample regenerates deterministically offline.
+*.parquet
+data/cache/
+*.bundle
+
+# ── Results: ignore everything, then un-ignore ONLY the two ToS-safe ──────
+#    derived-analytics files for the locked real run (aggregate metrics +
+#    regime model — NO raw OHLCV rows). Bar-level series.csv stays ignored.
+results/*
+!results/BTC_daily_REAL/
+results/BTC_daily_REAL/*
+!results/BTC_daily_REAL/report.md
+!results/BTC_daily_REAL/strategy_spec.json
+series.csv
+
+# ── Internal / process docs — LOCAL ONLY (not for public submission) ──────
+#    Build logs, sign-off notes, and other working docs kept out of the
+#    public repo.
+CLAUDE.md
+DECISIONS_FOR_FAIZ.md
+WORKLOG.md
+WHATS_NEXT.md
+MASTER_TRACK.md
+PROGRESS.md
+LAYER1_EVAL.md
+SUBMISSION_CHECKLIST.md
+FINAL_STATUS.md
+
+# ── Python / OS / editor ─────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

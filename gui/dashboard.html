@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>cmc-regime-switch · dashboard</title>
+<script src="data.js"></script>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121724; --panel2:#0f1420; --line:#1f2738;
+    --text:#dce3f0; --muted:#7d8aa5; --accent:#5eead4; --warn:#fbbf24;
+    --r0:#1d4ed8; --r1:#0ea5e9; --r2:#f59e0b; --r3:#ef4444;
+    --train:#64748b; --val:#a78bfa; --test:#5eead4;
+  }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 "Segoe UI",system-ui,sans-serif;padding:28px 32px 60px}
+  h1{font-size:20px;margin:0;letter-spacing:.3px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);
+     margin:0 0 12px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .banner{background:#3b2f10;border:1px solid #a16207;color:#fde68a;border-radius:10px;
+     padding:10px 16px;margin:18px 0;font-size:13px}
+  .grid{display:grid;gap:18px;margin-top:18px}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+     padding:16px 18px}
+  .card .k{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .card .v{font-size:22px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums}
+  .card .seg{font-size:10.5px;color:var(--muted)}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--muted);font-weight:500;font-size:11.5px;text-transform:uppercase;
+     letter-spacing:.8px}
+  th:first-child,td:first-child{text-align:left}
+  .pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;
+     vertical-align:-1px}
+  svg{display:block;width:100%}
+  .pos{color:#4ade80}.neg{color:#f87171}
+  .verdict-DEAD{background:#450a0a;color:#fca5a5}
+  .verdict-CONFIRMED{background:#052e16;color:#86efac}
+  .verdict-WEAK-MONITOR{background:#422006;color:#fcd34d}
+  .policy{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  .pol{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .pol .lbl{font-weight:600;font-size:13px}
+  .pol .det{color:var(--muted);font-size:12px;margin-top:4px}
+  .bar{height:6px;border-radius:3px;background:#1f2738;margin-top:8px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:3px}
+  footer{margin-top:26px;color:var(--muted);font-size:12px}
+  code{background:var(--panel2);padding:1px 6px;border-radius:6px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="app">Loading… (run <code>python scripts/make_report.py --run results/latest</code> to generate gui/data.js)</div>
+<script>
+(function(){
+  if(!window.RUN_DATA){return;}
+  const {spec, series} = window.RUN_DATA;
+  const m = spec.meta, ev = spec.evidence;
+  const bat = ev.active_signal_battery;              // null for OHLCV-only runs
+  const bench = ev.benchmark_buy_and_hold || {};
+  const REG_COLORS = ['var(--r0)','var(--r1)','var(--r2)','var(--r3)'];
+  const SEG_COLORS = {TRAIN:'var(--train)', VAL:'var(--val)', TEST:'var(--test)'};
+  const fmt = (x,d=3)=> x==null?'n/a':(+x).toFixed(d);
+  const pct = (x,d=2)=> x==null?'n/a':((+x)*100).toFixed(d)+'%';
+  const cls = x => x==null?'':(x>=0?'pos':'neg');
+
+  // ── helpers to build SVG paths ──────────────────────────────────────
+  const W=1160, EH=260, RH=64;
+  function xScale(i,n){return 8+(W-16)*i/(n-1);}
+  function linePath(vals, ymin, ymax, h){
+    let d='', started=false;
+    const n=vals.length;
+    for(let i=0;i<n;i++){
+      const v=vals[i];
+      if(v==null){started=false;continue;}
+      const x=xScale(i,n), y=8+(h-16)*(1-(v-ymin)/(ymax-ymin||1));
+      d+= (started?'L':'M')+x.toFixed(1)+' '+y.toFixed(1); started=true;
+    }
+    return d;
+  }
+
+  // ── header & cards ──────────────────────────────────────────────────
+  const bt = ev.backtest;
+  let html = `
+   <h1>cmc-regime-switch <span style="color:var(--muted);font-weight:400">· ${m.asset} @ ${m.bar_freq} bars</span></h1>
+   <div class="sub">generated ${m.generated_at} · data: ${m.data_source} · skill v${m.version}</div>`;
+  if(m.synthetic_data){
+    html += `<div class="banner">⚠ SYNTHETIC DATA — every number on this page demonstrates the
+      pipeline (causal, segment-labeled). It is <b>not</b> market evidence.</div>`;
+  } else {
+    html += `<div class="banner" style="background:#06281f;border-color:#0f766e;color:var(--accent)">
+      ● real BTC daily · CMC — OHLCV-only (derivatives excluded). Honest readout, no alpha claim;
+      prices shown rebased to an index (no raw USD).</div>`;
+  }
+  html += `<div class="grid cards">`;
+  for(const seg of ['TRAIN','VAL','TEST']){
+    const b=bt[seg];
+    html += `<div class="card"><div class="k">Sharpe <span class="seg">(${seg}, ann)</span></div>
+      <div class="v ${cls(b.sharpe)}">${fmt(b.sharpe,2)}</div>
+      <div class="seg">MaxDD ${pct(b.maxdd)} · PF ${b.pf==null?'∞':fmt(b.pf,2)}</div></div>`;
+  }
+  if(bat){
+    html += `<div class="card"><div class="k">Battery verdict</div>
+       <div class="v"><span class="pill verdict-${bat.verdict}">${bat.verdict}</span></div>
+       <div class="seg">primary ${bat.primary_horizon} · CI90 [${fmt(bat.bootstrap_ci_90[0],3)}, ${fmt(bat.bootstrap_ci_90[1],3)}]</div></div>`;
+    html += `<div class="card"><div class="k">Active signal</div>
+       <div class="v" style="font-size:17px">${spec.signal.active}</div>
+       <div class="seg">sign ${spec.signal.sign>0?'+1':'-1'} · TRAIN-calibrated, frozen</div></div>`;
+  } else {
+    html += `<div class="card"><div class="k">Verdict vs buy &amp; hold</div>
+       <div class="v"><span class="pill verdict-DEAD">NO EDGE</span></div>
+       <div class="seg">reduces drawdown &amp; vol · not return</div></div>`;
+    html += `<div class="card"><div class="k">Strategy</div>
+       <div class="v" style="font-size:15px">regime-gated overlay</div>
+       <div class="seg">long-or-flat ≤1× · vol-targeted (OHLCV-only)</div></div>`;
+  }
+  html += `</div>`;
+
+  // ── honest verdict + finding ────────────────────────────────────────
+  if(m.verdict){
+    html += `<div class="panel" style="margin-top:18px"><h2>Verdict (honest)</h2>
+      <div style="font-size:14px"><b>${m.verdict}</b></div>`;
+    if(m.finding) html += `<div class="sub" style="margin-top:8px">${m.finding}</div>`;
+    html += `</div>`;
+  }
+
+  // ── regime timeline ─────────────────────────────────────────────────
+  const n=series.t.length;
+  let regRects='';
+  for(let i=0;i<n;i++){
+    const r=series.regime[i];
+    if(r==null) continue;
+    const x=xScale(i,n), w=Math.max((W-16)/n+0.6,1.2);
+    regRects+=`<rect x="${x.toFixed(1)}" y="8" width="${w.toFixed(2)}" height="${RH-22}" fill="${REG_COLORS[r|0]}" />`;
+  }
+  // segment boundary markers
+  let segMarks='';
+  for(let i=1;i<n;i++){
+    if(series.segment[i]!==series.segment[i-1] && (series.segment[i]==='VAL'||series.segment[i]==='TEST')){
+      const x=xScale(i,n);
+      segMarks+=`<line x1="${x}" y1="2" x2="${x}" y2="${RH-8}" stroke="#fff" stroke-dasharray="3 3" opacity=".6"/>
+        <text x="${x+4}" y="${RH-12}" fill="var(--muted)" font-size="10">${series.segment[i]}</text>`;
+    }
+  }
+  const stateLabels = spec.regime_model.states.map((s,i)=>
+    `<span><i class="sw" style="background:${REG_COLORS[s.id]}"></i>${s.label}</span>`).join(' ');
+  html += `<div class="panel" style="margin-top:18px"><h2>Regime timeline (filtered, causal)</h2>
+    <svg viewBox="0 0 ${W} ${RH}">${regRects}${segMarks}</svg>
+    <div class="legend">${stateLabels}<span style="margin-left:auto">dashed = segment boundary</span></div></div>`;
+
+  // ── price (rebased index — ToS-safe, no raw USD) + equity ───────────
+  const price = series.price_index || [];
+  const cmin=Math.min(...price.filter(v=>v!=null)), cmax=Math.max(...price.filter(v=>v!=null));
+  const eqAll=[];
+  for(const k of ['equity_train','equity_val','equity_test']) for(const v of series[k]) if(v!=null) eqAll.push(v);
+  const emin=Math.min(...eqAll), emax=Math.max(...eqAll);
+  html += `<div class="grid" style="grid-template-columns:1fr 1fr">
+    <div class="panel"><h2>${m.asset} price — rebased to 100 ${m.synthetic_data?'(synthetic)':'(real daily · CMC)'}</h2>
+      <svg viewBox="0 0 ${W} ${EH}">
+        <path d="${linePath(price,cmin,cmax,EH)}" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+      </svg>
+      <div class="legend"><span>${series.t[0].slice(0,10)} → ${series.t[n-1].slice(0,10)}</span>
+      <span style="margin-left:auto">index 100 → ${fmt(cmax,0)} · no raw USD (ToS-safe)</span></div></div>
+    <div class="panel"><h2>Strategy equity per segment (each starts at 1.0)</h2>
+      <svg viewBox="0 0 ${W} ${EH}">
+        <line x1="8" x2="${W-8}" y1="${8+(EH-16)*(1-(1-emin)/(emax-emin||1))}" y2="${8+(EH-16)*(1-(1-emin)/(emax-emin||1))}" stroke="var(--line)"/>
+        <path d="${linePath(series.equity_train,emin,emax,EH)}" fill="none" stroke="${SEG_COLORS.TRAIN}" stroke-width="1.5"/>
+        <path d="${linePath(series.equity_val,emin,emax,EH)}" fill="none" stroke="${SEG_COLORS.VAL}" stroke-width="1.6"/>
+        <path d="${linePath(series.equity_test,emin,emax,EH)}" fill="none" stroke="${SEG_COLORS.TEST}" stroke-width="1.8"/>
+      </svg>
+      <div class="legend">
+        <span><i class="sw" style="background:${SEG_COLORS.TRAIN}"></i>TRAIN (in-sample — not performance)</span>
+        <span><i class="sw" style="background:${SEG_COLORS.VAL}"></i>VAL</span>
+        <span><i class="sw" style="background:${SEG_COLORS.TEST}"></i>TEST (honest out-of-sample)</span></div></div>
+  </div>`;
+
+  // ── policy + metrics + IC ───────────────────────────────────────────
+  html += `<div class="grid" style="grid-template-columns:1.1fr .9fr">`;
+  html += `<div class="panel"><h2>Policy by regime (the switch)</h2><div class="policy">`;
+  for(const s of spec.regime_model.states){
+    const p = spec.policy[s.label];
+    html += `<div class="pol"><div class="lbl"><i class="sw" style="background:${REG_COLORS[s.id]}"></i>${s.label}</div>
+      <div class="det">signal: <b>${p.signal}</b></div>
+      <div class="det">position factor ${p.position_factor}</div>
+      <div class="bar"><i style="width:${p.position_factor*100}%;background:${REG_COLORS[s.id]}"></i></div>
+      <div class="det">TRAIN occupancy ${pct(s.occupancy_train,1)} · avg ${fmt(s.avg_duration_bars,0)} bars</div></div>`;
+  }
+  html += `</div><div class="sub" style="margin-top:10px">sizing: ${spec.sizing.rule} ·
+     target vol from ${spec.sizing.target_vol_source} · costs ${spec.costs.fee_bps}+${spec.costs.slip_bps} bps</div></div>`;
+
+  if(bat){
+    html += `<div class="panel"><h2>Evidence (all segment-labeled)</h2>
+      <table><tr><th>segment</th><th>IC (${bat.primary_horizon})</th><th>Sharpe</th><th>MaxDD</th><th>turnover/bar</th><th>bars</th></tr>`;
+    for(const seg of ['TRAIN','VAL','TEST']){
+      const b=bt[seg];
+      html+=`<tr><td><b>${seg}</b></td><td class="${cls(bat.ic[seg])}">${fmt(bat.ic[seg],4)}</td>
+        <td class="${cls(b.sharpe)}">${fmt(b.sharpe,2)}</td><td>${pct(b.maxdd)}</td>
+        <td>${fmt(b.turnover_per_bar,4)}</td><td>${b.n_bars}</td></tr>`;
+    }
+    html+=`<tr><td>FULL</td><td class="${cls(bat.ic.FULL)}">${fmt(bat.ic.FULL,4)}</td><td colspan="4" style="color:var(--muted)">bootstrap CI90 [${fmt(bat.bootstrap_ci_90[0],4)}, ${fmt(bat.bootstrap_ci_90[1],4)}], N=${bat.bootstrap_n}</td></tr>`;
+    html += `</table><div class="sub" style="margin-top:10px">verdict reasons:<br>${bat.verdict_reasons.map(r=>'· '+r).join('<br>')}</div></div>`;
+  } else {
+    html += `<div class="panel"><h2>Strategy vs buy &amp; hold (all segment-labeled)</h2>
+      <table><tr><th>segment</th><th>Sharpe</th><th>MaxDD</th><th>total return</th><th>turnover/bar</th><th>bars</th></tr>`;
+    for(const seg of ['TRAIN','VAL','TEST']){
+      const b=bt[seg], h=bench[seg]||{};
+      html+=`<tr><td><b>${seg}</b> strat</td><td class="${cls(b.sharpe)}">${fmt(b.sharpe,2)}</td>
+        <td>${pct(b.maxdd)}</td><td class="${cls(b.total_return)}">${pct(b.total_return)}</td>
+        <td>${fmt(b.turnover_per_bar,4)}</td><td>${b.n_bars}</td></tr>`;
+      html+=`<tr style="color:var(--muted)"><td>${seg} buy&amp;hold</td><td>${fmt(h.sharpe,2)}</td>
+        <td>${pct(h.maxdd)}</td><td>${pct(h.total_return)}</td><td>0.0000</td><td>${h.n_bars==null?'':h.n_bars}</td></tr>`;
+    }
+    html += `</table><div class="sub" style="margin-top:10px">The overlay lowers drawdown &amp; realized
+      vol on every segment but does <b>not</b> beat buy &amp; hold on Sharpe or return — reported, not tuned.</div></div>`;
+  }
+  html += `</div>`;
+
+  html += `<footer>guards: live_trading=${spec.guards.live_trading} · ${spec.guards.lookahead}
+    · HMM inference: ${spec.regime_model.inference} · params ${spec.regime_model.params_hash}<br>
+    This page claims regime discipline and validation rigor — not alpha.</footer>`;
+
+  document.getElementById('app').innerHTML = html;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+{
+  "meta": {
+    "skill": "cmc-regime-switch",
+    "version": "1.1",
+    "asset": "BTC",
+    "bar_freq": "24h",
+    "bars_per_year": 365.0,
+    "strategy_type": "regime-gated, vol-targeted long-or-flat volatility overlay on daily BTC OHLCV (OHLCV-only)",
+    "position_bounds": "long-or-flat [0, 1] — max_leverage=1.0, never levered or short",
+    "regimes": "4 genuine volatility regimes (GaussianHMM K=4, filtered/causal, TRAIN-only); no degenerate states",
+    "derivatives_excluded": true,
+    "derivatives_note": "funding/open-interest/long-short are unavailable on CMC and are excluded (D2)",
+    "generated_at": "2026-06-15T03:45:46.054553+00:00",
+    "data_source": "CMC Data API cache",
+    "synthetic_data": false,
+    "verdict": "NO EDGE in this configuration: the overlay reduces drawdown and realized vol on all of TRAIN/VAL/TEST, but does NOT beat buy-and-hold on Sharpe or return on any segment. Reported, not tuned.",
+    "finding": "In crypto, BTC's positive drift is concentrated in HIGH-volatility regimes (bull runs are volatile), so de-risking high vol misses the upside — opposite of the equities intuition. The regime gate is correctly signed for its risk-reduction design; flipping it to chase the in-sample upside would be overfitting, so it was NOT changed.",
+    "disclaimer": "Backtest on REAL historical daily BTC OHLCV; regime discipline + risk transform only; NO claim of live edge or alpha. Every metric is TRAIN/VAL/TEST-labeled; compare the overlay against the buy-and-hold benchmark on the same basis."
+  },
+  "regime_model": {
+    "type": "GaussianHMM",
+    "K": 4,
+    "covariance_type": "diag",
+    "obs": [
+      "log_return",
+      "log_rv_day"
+    ],
+    "obs_standardization": {
+      "method": "StandardScaler",
+      "fit_segment": "TRAIN only",
+      "mean": [
+        0.0010020246922761743,
+        -4.317739434451933
+      ],
+      "scale": [
+        0.03923268954207746,
+        1.3196901686340583
+      ],
+      "note": "fit on TRAIN obs only; applied to TRAIN/VAL/TEST alike (affine, no lookahead). State means below are reported in original units (inverse-transformed)."
+    },
+    "inference": "filtered (causal forward algorithm) \u2014 never Viterbi",
+    "params_hash": "a43fd80e845a8b91",
+    "fit_segment": "TRAIN only",
+    "bic_table": [
+      {
+        "K": 2,
+        "logL": -7248.27,
+        "BIC": 14585.26,
+        "n_params": 11,
+        "converged": true,
+        "neg_ll_deltas": 0
+      },
+      {
+        "K": 3,
+        "logL": -6557.1,
+        "BIC": 13275.48,
+        "n_params": 20,
+        "converged": true,
+        "neg_ll_deltas": 0
+      },
+      {
+        "K": 4,
+        "logL": -6162.71,
+        "BIC": 12575.43,
+        "n_params": 31,
+        "converged": true,
+        "neg_ll_deltas": 0
+      }
+    ],
+    "states": [
+      {
+        "id": 0,
+        "label": "calm",
+        "mean_return": 0.00017295155708247115,
+        "mean_log_rv": -6.315222418363833,
+        "occupancy_train": 0.19056603773584907,
+        "train_count": 606,
+        "self_trans_prob": 0.26487601345109774,
+        "avg_duration_bars": 1.3603147473048445
+      },
+      {
+        "id": 1,
+        "label": "low-vol",
+        "mean_return": -0.0016550746089821643,
+        "mean_log_rv": -4.536957815052234,
+        "occupancy_train": 0.4015723270440252,
+        "train_count": 1277,
+        "self_trans_prob": 0.40091201628212203,
+        "avg_duration_bars": 1.6692039018945157
+      },
+      {
+        "id": 2,
+        "label": "high-vol",
+        "mean_return": 0.025682140915994633,
+        "mean_log_rv": -3.680281784644417,
+        "occupancy_train": 0.10943396226415095,
+        "train_count": 348,
+        "self_trans_prob": 0.11718748387885507,
+        "avg_duration_bars": 1.1327433421466964
+      },
+      {
+        "id": 3,
+        "label": "turbulent",
+        "mean_return": -0.0035488468815554793,
+        "mean_log_rv": -2.965413029085075,
+        "occupancy_train": 0.29842767295597483,
+        "train_count": 949,
+        "self_trans_prob": 0.40028696488357973,
+        "avg_duration_bars": 1.667464172770354
+      }
+    ],
+    "degenerate_states": [],
+    "degenerate_state_threshold_train_bars": 15
+  },
+  "policy": {
+    "calm": {
+      "signal": "baseline_long",
+      "position_factor": 1.0
+    },
+    "low-vol": {
+      "signal": "baseline_long",
+      "position_factor": 1.0
+    },
+    "high-vol": {
+      "signal": "flat",
+      "position_factor": 0.5
+    },
+    "turbulent": {
+      "signal": "flat",
+      "position_factor": 0.0
+    }
+  },
+  "signal": {
+    "active": "baseline_long",
+    "mode": "OHLCV-only (regime-gated long-only vol overlay)",
+    "sign": 1,
+    "directional_alpha_signal": null,
+    "note": "Derivatives unavailable on CMC (D2) \u2192 no positioning/funding signal. Baseline exposure = long BTC beta, flattened by the regime gate in de-risked/turbulent states. This is NOT an alpha claim; see the buy-and-hold benchmark.",
+    "candidates_evaluated": {}
+  },
+  "sizing": {
+    "rule": "target_vol / HAR_forecast, clip [0, 1.0]",
+    "target_vol_source": "TRAIN median of HAR forecast vol",
+    "target_vol": 0.013660520390081102,
+    "regime_factors": {
+      "calm": 1.0,
+      "low-vol": 1.0,
+      "high-vol": 0.5,
+      "turbulent": 0.0
+    }
+  },
+  "costs": {
+    "fee_bps": 4.0,
+    "slip_bps": 1.0
+  },
+  "evidence": {
+    "segment_labeled": true,
+    "active_signal_battery": null,
+    "backtest": {
+      "TRAIN": {
+        "sharpe": 0.12756611217116387,
+        "maxdd": -0.7334182782500088,
+        "pf": 1.0273653671976806,
+        "total_return": -0.3447340714853011,
+        "turnover_per_bar": 0.3648805813446859,
+        "realized_vol_ann": 0.45715996125207314,
+        "n_bars": 3152
+      },
+      "VAL": {
+        "sharpe": 0.741252484423306,
+        "maxdd": -0.24986473469659887,
+        "pf": 1.1435882668667197,
+        "total_return": 0.47538000773451117,
+        "turnover_per_bar": 0.3575795364265207,
+        "realized_vol_ann": 0.3754741311858813,
+        "n_bars": 682
+      },
+      "TEST": {
+        "sharpe": -0.03608716788057767,
+        "maxdd": -0.49090625878646904,
+        "pf": 0.9940883122019596,
+        "total_return": -0.10987636803872924,
+        "turnover_per_bar": 0.37633023100084917,
+        "realized_vol_ann": 0.334854921704481,
+        "n_bars": 623
+      }
+    },
+    "benchmark_buy_and_hold": {
+      "TRAIN": {
+        "sharpe": 0.864313372747734,
+        "maxdd": -0.8339900920034264,
+        "total_return": 22.707491123005454,
+        "realized_vol_ann": 0.742989533004963,
+        "n_bars": 3181
+      },
+      "VAL": {
+        "sharpe": 1.457488970152223,
+        "maxdd": -0.2612360270749417,
+        "total_return": 2.087322499846216,
+        "realized_vol_ann": 0.49919879846413406,
+        "n_bars": 682
+      },
+      "TEST": {
+        "sharpe": 0.2744554324418695,
+        "maxdd": -0.5120947437842711,
+        "total_return": 0.037076665394569774,
+        "realized_vol_ann": 0.4565911931136277,
+        "n_bars": 623
+      }
+    },
+    "regime_stability": {
+      "TRAIN": {
+        "n_valid_bars": 3180,
+        "n_switches": 2099,
+        "switch_rate": 0.6602705253224285,
+        "occupancy": {
+          "0": 0.19056603773584907,
+          "1": 0.4015723270440252,
+          "2": 0.10943396226415095,
+          "3": 0.29842767295597483
+        },
+        "mean_run_lengths": {
+          "0": 1.3557046979865772,
+          "1": 1.6824769433465085,
+          "2": 1.1335504885993486,
+          "3": 1.616695059625213
+        }
+      },
+      "VAL": {
+        "n_valid_bars": 682,
+        "n_switches": 433,
+        "switch_rate": 0.6358296622613803,
+        "occupancy": {
+          "0": 0.2668621700879765,
+          "1": 0.45454545454545453,
+          "2": 0.09970674486803519,
+          "3": 0.17888563049853373
+        },
+        "mean_run_lengths": {
+          "0": 1.6545454545454545,
+          "1": 1.802325581395349,
+          "2": 1.0625,
+          "3": 1.3863636363636365
+        }
+      },
+      "TEST": {
+        "n_valid_bars": 623,
+        "n_switches": 411,
+        "switch_rate": 0.6607717041800643,
+        "occupancy": {
+          "0": 0.23595505617977527,
+          "1": 0.48796147672552165,
+          "2": 0.09309791332263243,
+          "3": 0.18298555377207062
+        },
+        "mean_run_lengths": {
+          "0": 1.3008849557522124,
+          "1": 1.9240506329113924,
+          "2": 1.0545454545454545,
+          "3": 1.3255813953488371
+        }
+      }
+    },
+    "split": {
+      "train_n": 3182,
+      "val_n": 682,
+      "test_n": 623,
+      "train_start": "2014-01-02 00:00:00+00:00",
+      "train_end": "2022-09-18 00:00:00+00:00",
+      "val_start": "2022-10-19 00:00:00+00:00",
+      "val_end": "2024-08-30 00:00:00+00:00",
+      "test_start": "2024-09-30 00:00:00+00:00",
+      "test_end": "2026-06-14 00:00:00+00:00",
+      "embargo_bars": 30
+    }
+  },
+  "guards": {
+    "live_trading": false,
+    "execution_code_present": false,
+    "causality_mutation_tests": "see tests/ \u2014 run `pytest -q`",
+    "lookahead": "none \u2014 embargo=30 bars, all scalers/thresholds/HAR/HMM fit on TRAIN only, filtered HMM inference",
+    "features_use_returns_not_levels": true
+  }
+}
