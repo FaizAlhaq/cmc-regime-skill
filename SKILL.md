@@ -26,6 +26,21 @@ below on **daily** bars. The default and submission path is **daily, OHLCV-only*
 history, so no derivative signal is used or claimed. Report whatever the
 validation says — including **no edge**. Never fabricate or imply alpha.
 
+## Generalization
+
+Pipeline coin-agnostic: menerima ticker CMC mana pun dengan sejarah yang cukup —
+ganti `--asset BTC` dengan ticker yang diinginkan (misal `ETH`, `SOL`). Pipeline
+kausal penuh dijalankan ulang dari awal pada data coin itu: scaler, HAR, dan HMM
+di-fit ulang pada TRAIN coin tersebut (terpisah, nol kebocoran antar-coin). Tidak
+ada state global yang tersimpan antar panggilan.
+
+BTC (2014→2026, 4547 bar) adalah konfigurasi yang telah divalidasi — satu-satunya
+yang hasilnya dilaporkan di sini. Coin dengan sejarah pendek menghasilkan TRAIN
+yang lebih pendek → validasi out-of-sample lebih lemah (caveat perlu dilaporkan).
+
+**TIDAK mengklaim hasil tervalidasi untuk coin selain yang dilaporkan di spec
+`meta.asset`.**
+
 ## Prerequisites
 
 ```bash
@@ -81,8 +96,16 @@ Writes `report.md` (every metric TRAIN/VAL/TEST-labeled) and `gui/data.js`;
 
 ## Step 4 — Return the agent-ready JSON and read it honestly
 
-Return `strategy_spec.json` to the caller. Contract highlights:
+Return `strategy_spec.json` to the caller. The spec is a **human-readable reasoned
+decision, not just a metrics dump** — lead with the plain-language explanation,
+then back it with the segment-labeled numbers. Contract highlights:
 
+- `rationale` — the plain-language layer to surface FIRST. `rationale.plain_summary`
+  (1–2 sentence "what this is, in plain words"), `rationale.honest_verdict`, and
+  `rationale.key_finding` are the headline. `rationale.decisions` explains *why* each
+  design choice was made, `rationale.candidates_evaluated` records which signals were
+  rejected and why (e.g. Fear & Greed → DEAD: no TRAIN overlap), and
+  `rationale.limitations` states what this is NOT. Quote these to a human before any table.
 - `meta.synthetic_data` — if true, state plainly the evidence is a pipeline
   demonstration on synthetic data, NOT market results.
 - `meta.verdict` / `meta.finding` — the honest readout (e.g. "no edge vs

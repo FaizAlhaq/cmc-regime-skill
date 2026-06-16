@@ -309,10 +309,10 @@ def main() -> int:
             "mode": "OHLCV-only (regime-gated long-only vol overlay)",
             "sign": signs["baseline_long"],
             "directional_alpha_signal": None,
-            "note": "Derivatives unavailable on CMC (D2) → no positioning/funding "
-                    "signal. Baseline exposure = long BTC beta, flattened by the "
-                    "regime gate in de-risked/turbulent states. This is NOT an "
-                    "alpha claim; see the buy-and-hold benchmark.",
+            "note": (f"Derivatives unavailable on CMC (D2) → no positioning/funding "
+                     f"signal. Baseline exposure = long {args.asset} beta, flattened by the "
+                     f"regime gate in de-risked/turbulent states. This is NOT an "
+                     f"alpha claim; see the buy-and-hold benchmark."),
             "candidates_evaluated": {},
         }
         battery_evidence = None

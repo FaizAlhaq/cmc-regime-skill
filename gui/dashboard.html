@@ -93,12 +93,46 @@
       ● real BTC daily · CMC — OHLCV-only (derivatives excluded). Honest readout, no alpha claim;
       prices shown rebased to an index (no raw USD).</div>`;
   }
-  html += `<div class="grid cards">`;
+
+  // ── headline: plain-language summary (the main title), numbers below ──
+  const rat = spec.rationale;
+  if(rat){
+    html += `<div class="panel" style="margin-top:18px;border-color:#0f766e;background:#0c1f1b">
+      <div style="font-size:19px;font-weight:600;line-height:1.5">${rat.plain_summary}</div>
+      <div class="sub" style="margin-top:12px;font-size:13px">${rat.what_it_does}</div>
+      <div class="sub" style="margin-top:6px;font-size:13px"><b>Verdict jujur:</b> ${rat.honest_verdict}</div>
+      <div class="sub" style="margin-top:6px;font-size:13px"><b>Temuan kunci:</b> ${rat.key_finding}</div>
+    </div>`;
+  }
+
+  html += `<div class="sub" style="margin-top:18px;text-transform:uppercase;letter-spacing:1px;font-size:11px">angka pendukung (per segmen)</div>`;
+  html += `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:10px">`;
   for(const seg of ['TRAIN','VAL','TEST']){
-    const b=bt[seg];
-    html += `<div class="card"><div class="k">Sharpe <span class="seg">(${seg}, ann)</span></div>
-      <div class="v ${cls(b.sharpe)}">${fmt(b.sharpe,2)}</div>
-      <div class="seg">MaxDD ${pct(b.maxdd)} · PF ${b.pf==null?'∞':fmt(b.pf,2)}</div></div>`;
+    const b=bt[seg], h=bench[seg]||{};
+    const sc=SEG_COLORS[seg];
+    html += `<div class="card">
+      <div class="k" style="color:${sc};font-size:12px">${seg}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+        <div>
+          <div class="k">Sharpe (ann)</div>
+          <div class="v ${cls(b.sharpe)}" style="font-size:20px">${fmt(b.sharpe,2)}</div>
+          <div class="seg">B&amp;H: <span style="color:var(--text)">${fmt(h.sharpe,2)}</span></div>
+        </div>
+        <div>
+          <div class="k">MaxDD</div>
+          <div class="v" style="font-size:20px;color:var(--muted)">${pct(b.maxdd)}</div>
+          <div class="seg">B&amp;H: <span style="color:var(--text)">${pct(h.maxdd)}</span></div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px">
+        <div class="k">Total return</div>
+        <div style="margin-top:3px;font-size:13px">
+          <span class="${cls(b.total_return)}">${pct(b.total_return)}</span>
+          <span class="seg"> strat &nbsp;·&nbsp; </span>
+          <span style="color:var(--muted)">${pct(h.total_return)} B&amp;H</span>
+        </div>
+      </div>
+    </div>`;
   }
   if(bat){
     html += `<div class="card"><div class="k">Battery verdict</div>
@@ -116,6 +150,47 @@
        <div class="seg">long-or-flat ≤1× · vol-targeted (OHLCV-only)</div></div>`;
   }
   html += `</div>`;
+
+  // ── decisions / candidates / limitations from rationale ────────────
+  if(rat){
+    const vStyle = {
+      'DEAD':        'background:#450a0a;color:#fca5a5',
+      'UNAVAILABLE': 'background:#1e2740;color:#93a8d8',
+      'NOT-NEW':     'background:#2d2100;color:#c4a32a',
+    };
+    let rp = `<div class="panel" style="margin-top:18px"><h2>Keputusan strategi &amp; kandidat yang dievaluasi</h2>`;
+    if(rat.decisions && rat.decisions.length){
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Keputusan ✓</div>`;
+      rp += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-bottom:16px">`;
+      for(const d of rat.decisions){
+        rp += `<div style="background:var(--panel2);border-radius:10px;padding:10px 12px;border-left:3px solid #0f766e">
+          <div style="font-weight:600;font-size:13px">✓ ${d.choice}</div>
+          <div class="sub" style="margin-top:3px">${d.why}</div></div>`;
+      }
+      rp += `</div>`;
+    }
+    if(rat.candidates_evaluated && rat.candidates_evaluated.length){
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Kandidat yang dievaluasi</div>`;
+      rp += `<div style="display:grid;gap:8px;margin-bottom:16px">`;
+      for(const c of rat.candidates_evaluated){
+        const vs = vStyle[c.verdict] || 'background:#1f2738;color:var(--muted)';
+        rp += `<div style="background:var(--panel2);border-radius:10px;padding:10px 12px;display:flex;gap:12px;align-items:flex-start">
+          <span class="pill" style="${vs};flex-shrink:0;margin-top:1px">${c.verdict}</span>
+          <div><div style="font-weight:600;font-size:13px">${c.signal}</div>
+          <div class="sub" style="margin-top:3px">${c.why}</div></div></div>`;
+      }
+      rp += `</div>`;
+    }
+    if(rat.limitations && rat.limitations.length){
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Batasan ⚠</div>`;
+      for(const lim of rat.limitations){
+        rp += `<div style="background:#1a1200;border-radius:10px;padding:10px 12px;border-left:3px solid var(--warn)">
+          <span style="color:var(--warn)">⚠</span> <span class="sub" style="display:inline">${lim}</span></div>`;
+      }
+    }
+    rp += `</div>`;
+    html += rp;
+  }
 
   // ── honest verdict + finding ────────────────────────────────────────
   if(m.verdict){

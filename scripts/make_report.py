@@ -57,6 +57,39 @@ def render_md(spec: dict) -> str:
         f"**Data source:** {m['data_source']}",
         "",
     ]
+    rat = spec.get("rationale")
+    if rat:
+        lines += [
+            "## Ringkasan untuk manusia (plain language)",
+            "",
+            f"**{rat['plain_summary']}**",
+            "",
+            f"- **Apa yang dilakukan:** {rat['what_it_does']}",
+            f"- **Verdict jujur:** {rat['honest_verdict']}",
+            f"- **Temuan kunci:** {rat['key_finding']}",
+        ]
+        fng = next((c for c in rat.get("candidates_evaluated", [])
+                    if "Fear" in c.get("signal", "")), None)
+        if fng:
+            lines.append(f"- **Fear & Greed?** {fng['verdict']} — {fng['why']}")
+        lines += [
+            "",
+            "_Detail teknis dan angka lengkap (regime, kebijakan, backtest per-segmen) "
+            "ada di bawah — semuanya berlabel TRAIN/VAL/TEST._",
+            "",
+        ]
+    asset = m.get("asset", "BTC")
+    lines += [
+        "## Generalization",
+        "",
+        f"Pipeline coin-agnostic: menerima ticker CMC mana pun (ganti `--asset {asset}` "
+        f"dengan ticker lain). Scaler, HAR, dan HMM di-fit ulang dari awal pada TRAIN "
+        f"coin tersebut — nol kebocoran antar-coin, nol state global. "
+        f"**{asset}** (data yang dilaporkan di sini) adalah satu-satunya konfigurasi yang "
+        f"telah divalidasi. Coin dengan sejarah pendek → TRAIN pendek → validasi lebih "
+        f"lemah (caveat). **TIDAK mengklaim hasil tervalidasi untuk coin selain `{asset}`.**",
+        "",
+    ]
     if m.get("synthetic_data"):
         lines += [
             "> ⚠️ **SYNTHETIC DATA.** Every number below was computed on the seeded",
