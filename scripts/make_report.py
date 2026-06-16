@@ -60,13 +60,13 @@ def render_md(spec: dict) -> str:
     rat = spec.get("rationale")
     if rat:
         lines += [
-            "## Ringkasan untuk manusia (plain language)",
+            "## Plain-language summary",
             "",
             f"**{rat['plain_summary']}**",
             "",
-            f"- **Apa yang dilakukan:** {rat['what_it_does']}",
-            f"- **Verdict jujur:** {rat['honest_verdict']}",
-            f"- **Temuan kunci:** {rat['key_finding']}",
+            f"- **What it does:** {rat['what_it_does']}",
+            f"- **Honest verdict:** {rat['honest_verdict']}",
+            f"- **Key finding:** {rat['key_finding']}",
         ]
         fng = next((c for c in rat.get("candidates_evaluated", [])
                     if "Fear" in c.get("signal", "")), None)
@@ -74,20 +74,21 @@ def render_md(spec: dict) -> str:
             lines.append(f"- **Fear & Greed?** {fng['verdict']} — {fng['why']}")
         lines += [
             "",
-            "_Detail teknis dan angka lengkap (regime, kebijakan, backtest per-segmen) "
-            "ada di bawah — semuanya berlabel TRAIN/VAL/TEST._",
+            "_Full technical detail and segment-labeled numbers (regimes, policy, per-segment backtest) "
+            "are below — all TRAIN/VAL/TEST labeled._",
             "",
         ]
     asset = m.get("asset", "BTC")
     lines += [
         "## Generalization",
         "",
-        f"Pipeline coin-agnostic: menerima ticker CMC mana pun (ganti `--asset {asset}` "
-        f"dengan ticker lain). Scaler, HAR, dan HMM di-fit ulang dari awal pada TRAIN "
-        f"coin tersebut — nol kebocoran antar-coin, nol state global. "
-        f"**{asset}** (data yang dilaporkan di sini) adalah satu-satunya konfigurasi yang "
-        f"telah divalidasi. Coin dengan sejarah pendek → TRAIN pendek → validasi lebih "
-        f"lemah (caveat). **TIDAK mengklaim hasil tervalidasi untuk coin selain `{asset}`.**",
+        f"Pipeline is coin-agnostic: accepts any CMC ticker with sufficient history "
+        f"(replace `--asset {asset}` with the desired ticker). The scaler, HAR, and HMM "
+        f"are re-fit from scratch on that coin's TRAIN split — zero cross-coin leakage, "
+        f"zero global state. **{asset}** (the data reported here) is the only validated "
+        f"configuration. Coins with short history → shorter TRAIN → weaker out-of-sample "
+        f"validation (caveat applies). **No validated results are claimed for any coin "
+        f"other than `{asset}`.**",
         "",
     ]
     if m.get("synthetic_data"):

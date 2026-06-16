@@ -4,20 +4,20 @@ Generated 2026-06-15T03:45:46.054553+00:00 · skill `cmc-regime-switch` v1.1
 
 **Data source:** CMC Data API cache
 
-## Ringkasan untuk manusia (plain language)
+## Plain-language summary
 
-**Strategi ini dibuat untuk MENGURANGI RISIKO, bukan mengejar profit: pada data BTC harian nyata ia menurunkan drawdown dan volatilitas di semua segmen (TRAIN/VAL/TEST), tetapi tidak mengalahkan buy-and-hold pada Sharpe maupun return.**
+**This strategy was built to REDUCE RISK, not chase profit: on real daily BTC data it reduces drawdown and volatility across all segments (TRAIN/VAL/TEST), but does not beat buy-and-hold on Sharpe or return.**
 
-- **Apa yang dilakukan:** Mendeteksi 4 regime volatilitas BTC harian dengan Gaussian HMM (filtered/causal, di-fit hanya pada TRAIN), lalu memegang posisi long-or-flat: ukuran penuh saat regime tenang/low-vol, dikurangi saat high-vol, dan flat saat turbulent — disized dengan target volatilitas dan dibatasi [0, 1] (tak pernah leverage atau short).
-- **Verdict jujur:** Tidak ada edge arah (no directional edge) pada konfigurasi ini — murni risk overlay; hasil dilaporkan apa adanya dan TIDAK di-tuning.
-- **Temuan kunci:** Upside BTC justru terkonsentrasi di regime volatilitas TINGGI (bull run itu volatil), sehingga men-de-risk regime high-vol ikut melewatkan kenaikan — kebalikan dari intuisi pasar saham.
-- **Fear & Greed?** DEAD — Riwayat F&G di CMC baru mulai 2023-06-29, sedangkan TRAIN berakhir 2022-09-18 — nol overlap dengan TRAIN, sehingga TRAIN IC = NaN dan tidak bisa divalidasi tanpa lookahead; ditolak sebelum di-fetch penuh.
+- **What it does:** Detects 4 daily BTC volatility regimes with a Gaussian HMM (filtered/causal, fit on TRAIN only), then holds long-or-flat positions: full size in calm/low-vol regimes, reduced in high-vol, and flat in turbulent — vol-target sized and clipped to [0, 1] (never levered or short).
+- **Honest verdict:** No directional edge in this configuration — purely a risk overlay; results reported as-is and NOT tuned.
+- **Key finding:** BTC's upside is concentrated in HIGH-volatility regimes (bull runs are volatile), so de-risking the high-vol regime also misses the gains — the opposite of the equities intuition.
+- **Fear & Greed?** DEAD — CMC F&G history only starts 2023-06-29, while TRAIN ends 2022-09-18 — zero overlap with TRAIN, so TRAIN IC = NaN and cannot be validated without lookahead; rejected before full fetch.
 
-_Detail teknis dan angka lengkap (regime, kebijakan, backtest per-segmen) ada di bawah — semuanya berlabel TRAIN/VAL/TEST._
+_Full technical detail and segment-labeled numbers (regimes, policy, per-segment backtest) are below — all TRAIN/VAL/TEST labeled._
 
 ## Generalization
 
-Pipeline coin-agnostic: menerima ticker CMC mana pun (ganti `--asset BTC` dengan ticker lain). Scaler, HAR, dan HMM di-fit ulang dari awal pada TRAIN coin tersebut — nol kebocoran antar-coin, nol state global. **BTC** (data yang dilaporkan di sini) adalah satu-satunya konfigurasi yang telah divalidasi. Coin dengan sejarah pendek → TRAIN pendek → validasi lebih lemah (caveat). **TIDAK mengklaim hasil tervalidasi untuk coin selain `BTC`.**
+Pipeline is coin-agnostic: accepts any CMC ticker with sufficient history (replace `--asset BTC` with the desired ticker). The scaler, HAR, and HMM are re-fit from scratch on that coin's TRAIN split — zero cross-coin leakage, zero global state. **BTC** (the data reported here) is the only validated configuration. Coins with short history → shorter TRAIN → weaker out-of-sample validation (caveat applies). **No validated results are claimed for any coin other than `BTC`.**
 
 ## Verdict (honest)
 

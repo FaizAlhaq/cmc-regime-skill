@@ -282,23 +282,23 @@
     "features_use_returns_not_levels": true
   },
   "rationale": {
-    "plain_summary": "Strategi ini dibuat untuk MENGURANGI RISIKO, bukan mengejar profit: pada data BTC harian nyata ia menurunkan drawdown dan volatilitas di semua segmen (TRAIN/VAL/TEST), tetapi tidak mengalahkan buy-and-hold pada Sharpe maupun return.",
-    "what_it_does": "Mendeteksi 4 regime volatilitas BTC harian dengan Gaussian HMM (filtered/causal, di-fit hanya pada TRAIN), lalu memegang posisi long-or-flat: ukuran penuh saat regime tenang/low-vol, dikurangi saat high-vol, dan flat saat turbulent \u2014 disized dengan target volatilitas dan dibatasi [0, 1] (tak pernah leverage atau short).",
-    "honest_verdict": "Tidak ada edge arah (no directional edge) pada konfigurasi ini \u2014 murni risk overlay; hasil dilaporkan apa adanya dan TIDAK di-tuning.",
-    "key_finding": "Upside BTC justru terkonsentrasi di regime volatilitas TINGGI (bull run itu volatil), sehingga men-de-risk regime high-vol ikut melewatkan kenaikan \u2014 kebalikan dari intuisi pasar saham.",
+    "plain_summary": "This strategy was built to REDUCE RISK, not chase profit: on real daily BTC data it reduces drawdown and volatility across all segments (TRAIN/VAL/TEST), but does not beat buy-and-hold on Sharpe or return.",
+    "what_it_does": "Detects 4 daily BTC volatility regimes with a Gaussian HMM (filtered/causal, fit on TRAIN only), then holds long-or-flat positions: full size in calm/low-vol regimes, reduced in high-vol, and flat in turbulent \u2014 vol-target sized and clipped to [0, 1] (never levered or short).",
+    "honest_verdict": "No directional edge in this configuration \u2014 purely a risk overlay; results reported as-is and NOT tuned.",
+    "key_finding": "BTC's upside is concentrated in HIGH-volatility regimes (bull runs are volatile), so de-risking the high-vol regime also misses the gains \u2014 the opposite of the equities intuition.",
     "decisions": [
-      {"choice": "Bar harian (daily)", "why": "Jalur submission CMC dikunci ke bar harian (D1: bars_per_year=365); seluruh jendela RV/HAR dan horizon dihitung per hari."},
-      {"choice": "OHLCV-only", "why": "CMC tidak menyediakan sinyal arah (funding / open-interest / long-short ratio), jadi jalur harian CMC murni OHLCV (D2)."},
-      {"choice": "Regime-gated long-or-flat", "why": "Tanpa sinyal arah, eksposur dasar = long beta BTC, lalu di-flat-kan oleh gerbang regime di state high-vol/turbulent; dibatasi [0, 1] sehingga tak pernah leverage atau short."},
-      {"choice": "Tidak membalik gerbang regime", "why": "Membalik gate untuk mengejar upside yang terlihat in-sample akan menjadi overfitting / return-chasing, jadi sengaja tidak diubah."}
+      {"choice": "Daily bars", "why": "The CMC submission path is locked to daily bars (D1: bars_per_year=365); all RV/HAR windows and horizons are computed per day."},
+      {"choice": "OHLCV-only", "why": "CMC does not provide directional signals (funding / open-interest / long-short ratio), so the daily CMC path is purely OHLCV (D2)."},
+      {"choice": "Regime-gated long-or-flat", "why": "Without a directional signal, base exposure = long BTC beta, then flattened by the regime gate in high-vol/turbulent states; clipped to [0, 1] so never levered or short."},
+      {"choice": "Did not flip the regime gate", "why": "Flipping the gate to chase the in-sample visible upside would be overfitting / return-chasing, so it was deliberately left unchanged."}
     ],
     "candidates_evaluated": [
-      {"signal": "Fear & Greed (CMC)", "verdict": "DEAD", "why": "Riwayat F&G di CMC baru mulai 2023-06-29, sedangkan TRAIN berakhir 2022-09-18 \u2014 nol overlap dengan TRAIN, sehingga TRAIN IC = NaN dan tidak bisa divalidasi tanpa lookahead; ditolak sebelum di-fetch penuh."},
-      {"signal": "Derivatives (funding / OI / long-short)", "verdict": "UNAVAILABLE", "why": "Tidak tersedia di CMC (D2) \u2014 tidak ada endpoint riwayatnya, jadi tidak dipakai dan tidak diklaim."},
-      {"signal": "RSI / MACD", "verdict": "NOT-NEW", "why": "Murni turunan dari harga OHLCV \u2014 bukan informasi baru di luar yang sudah dipakai HMM, jadi tidak menambah cerita 'data CMC'."}
+      {"signal": "Fear & Greed (CMC)", "verdict": "DEAD", "why": "CMC F&G history only starts 2023-06-29, while TRAIN ends 2022-09-18 \u2014 zero overlap with TRAIN, so TRAIN IC = NaN and cannot be validated without lookahead; rejected before full fetch."},
+      {"signal": "Derivatives (funding / OI / long-short)", "verdict": "UNAVAILABLE", "why": "Unavailable on CMC (D2) \u2014 no historical endpoint exists, so not used and not claimed."},
+      {"signal": "RSI / MACD", "verdict": "NOT-NEW", "why": "Pure derivative of OHLCV prices \u2014 no new information beyond what HMM already uses, so it adds nothing to the 'CMC data' story."}
     ],
     "limitations": [
-      "Persistensi regime rendah (rata-rata ~1.5 bar per run, switch rate ~66%) sehingga secara praktis ini lebih mirip pengklasifikasi volatilitas cepat daripada detektor regime horizon-panjang; didokumentasikan sebagai future work dan SENGAJA tidak 'diperbaiki' agar tidak overfitting ke sampel ini."
+      "Low regime persistence (average ~1.5 bars per run, switch rate ~66%) means this behaves more like a fast volatility classifier than a long-horizon regime detector in practice; documented as future work and deliberately NOT 'fixed' to avoid overfitting to this sample."
     ]
   }
 }

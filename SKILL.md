@@ -28,18 +28,18 @@ validation says — including **no edge**. Never fabricate or imply alpha.
 
 ## Generalization
 
-Pipeline coin-agnostic: menerima ticker CMC mana pun dengan sejarah yang cukup —
-ganti `--asset BTC` dengan ticker yang diinginkan (misal `ETH`, `SOL`). Pipeline
-kausal penuh dijalankan ulang dari awal pada data coin itu: scaler, HAR, dan HMM
-di-fit ulang pada TRAIN coin tersebut (terpisah, nol kebocoran antar-coin). Tidak
-ada state global yang tersimpan antar panggilan.
+The pipeline is coin-agnostic: it accepts any CMC ticker with sufficient history —
+replace `--asset BTC` with the desired ticker (e.g. `ETH`, `SOL`). The full
+causal pipeline re-runs from scratch on that coin's data: the scaler, HAR, and HMM
+are re-fit on that coin's TRAIN split (isolated, zero cross-coin leakage). No
+global state is retained between calls.
 
-BTC (2014→2026, 4547 bar) adalah konfigurasi yang telah divalidasi — satu-satunya
-yang hasilnya dilaporkan di sini. Coin dengan sejarah pendek menghasilkan TRAIN
-yang lebih pendek → validasi out-of-sample lebih lemah (caveat perlu dilaporkan).
+BTC (2014→2026, 4547 bars) is the validated configuration — the only one whose
+results are reported here. Coins with shorter history yield a shorter TRAIN →
+weaker out-of-sample validation (caveat must be reported).
 
-**TIDAK mengklaim hasil tervalidasi untuk coin selain yang dilaporkan di spec
-`meta.asset`.**
+**No validated results are claimed for any coin other than the one reported in the
+spec's `meta.asset`.**
 
 ## Prerequisites
 

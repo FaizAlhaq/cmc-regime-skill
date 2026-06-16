@@ -100,12 +100,12 @@
     html += `<div class="panel" style="margin-top:18px;border-color:#0f766e;background:#0c1f1b">
       <div style="font-size:19px;font-weight:600;line-height:1.5">${rat.plain_summary}</div>
       <div class="sub" style="margin-top:12px;font-size:13px">${rat.what_it_does}</div>
-      <div class="sub" style="margin-top:6px;font-size:13px"><b>Verdict jujur:</b> ${rat.honest_verdict}</div>
-      <div class="sub" style="margin-top:6px;font-size:13px"><b>Temuan kunci:</b> ${rat.key_finding}</div>
+      <div class="sub" style="margin-top:6px;font-size:13px"><b>Honest verdict:</b> ${rat.honest_verdict}</div>
+      <div class="sub" style="margin-top:6px;font-size:13px"><b>Key finding:</b> ${rat.key_finding}</div>
     </div>`;
   }
 
-  html += `<div class="sub" style="margin-top:18px;text-transform:uppercase;letter-spacing:1px;font-size:11px">angka pendukung (per segmen)</div>`;
+  html += `<div class="sub" style="margin-top:18px;text-transform:uppercase;letter-spacing:1px;font-size:11px">supporting metrics (per segment)</div>`;
   html += `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:10px">`;
   for(const seg of ['TRAIN','VAL','TEST']){
     const b=bt[seg], h=bench[seg]||{};
@@ -158,9 +158,9 @@
       'UNAVAILABLE': 'background:#1e2740;color:#93a8d8',
       'NOT-NEW':     'background:#2d2100;color:#c4a32a',
     };
-    let rp = `<div class="panel" style="margin-top:18px"><h2>Keputusan strategi &amp; kandidat yang dievaluasi</h2>`;
+    let rp = `<div class="panel" style="margin-top:18px"><h2>Strategy decisions &amp; candidates evaluated</h2>`;
     if(rat.decisions && rat.decisions.length){
-      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Keputusan ✓</div>`;
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Decisions ✓</div>`;
       rp += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;margin-bottom:16px">`;
       for(const d of rat.decisions){
         rp += `<div style="background:var(--panel2);border-radius:10px;padding:10px 12px;border-left:3px solid #0f766e">
@@ -170,7 +170,7 @@
       rp += `</div>`;
     }
     if(rat.candidates_evaluated && rat.candidates_evaluated.length){
-      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Kandidat yang dievaluasi</div>`;
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Candidates evaluated</div>`;
       rp += `<div style="display:grid;gap:8px;margin-bottom:16px">`;
       for(const c of rat.candidates_evaluated){
         const vs = vStyle[c.verdict] || 'background:#1f2738;color:var(--muted)';
@@ -182,7 +182,7 @@
       rp += `</div>`;
     }
     if(rat.limitations && rat.limitations.length){
-      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Batasan ⚠</div>`;
+      rp += `<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Limitations ⚠</div>`;
       for(const lim of rat.limitations){
         rp += `<div style="background:#1a1200;border-radius:10px;padding:10px 12px;border-left:3px solid var(--warn)">
           <span style="color:var(--warn)">⚠</span> <span class="sub" style="display:inline">${lim}</span></div>`;
